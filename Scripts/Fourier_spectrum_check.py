@@ -27,8 +27,8 @@ def _fft_magnitude(img2d):
     mag = (mag - mag.min()) / (mag.max() - mag.min() + 1e-12)
     return mag
 
-def FFT_check(files, dest_folder):
-    for name in files:
+def FFT_check(files, original_data_folder, dest_folder):
+    for name in files: # name is actually path
         print(f'Processing: {name}')
         try:
             img = tifffile.imread(name)
@@ -54,13 +54,39 @@ def FFT_check(files, dest_folder):
             while True:
                 respond = input("Move to destination folder? [Y/N, Q to quit]: ").strip().lower()
                 if respond == 'y':
-                    target_path = os.path.join(dest_folder, os.path.basename(name))
-                    counter = 1
-                    while os.path.exists(target_path):
-                        target_path = f"{target_path}_{counter}"
-                        counter += 1
+                    file_name = os.path.basename(name)
+                    filename_without_ext = os.path.splitext(file_name)[0]
+                    reconstructed_file_name = f"{filename_without_ext}_recon.tif"
+                    
+                    target_folder_path = os.path.join(dest_folder, filename_without_ext)
+                    target_path = os.path.join(target_folder_path, reconstructed_file_name)
+                    
+                    os.makedirs(target_folder_path, exist_ok=True)
+                    
+                    # counter = 1
+                    # while os.path.exists(target_path):
+                    #     target_path = f"{target_path}_{counter}"
+                    #     counter += 1
+                    
                     shutil.move(name, target_path)
-                    print(f"Moved to: {target_path}")
+                    
+                    match_sequence = filename_without_ext
+                    print("match_sequence:", match_sequence)
+                    
+                    for f in os.listdir(original_data_folder):
+                        # print("Base name of f:", os.path.basename(f))
+                        file_path = os.path.join(original_data_folder, f)
+                        
+                        ori_filename_without_ext = os.path.splitext(os.path.basename(f))[0]
+                        
+                        if ori_filename_without_ext == match_sequence:
+                            original_file_name = f"{filename_without_ext}_ori.tif"
+                            target_path_origin = os.path.join(target_folder_path, original_file_name)
+                            # print("Move Original File to:", target_path_origin)
+                            shutil.move(file_path, target_path_origin)
+                            print("Original File Moved.")
+                            
+                    print(f"Moved to: {target_folder_path}")
                     break
                 elif respond == 'n':
                     print("Skipped moving.")
@@ -80,7 +106,16 @@ def FFT_check(files, dest_folder):
 if __name__ == "__main__":
     root = Tk()
     root.withdraw()
-    folder_path = filedialog.askdirectory(title="Please Select the Reconstructed SIM Figures' Folder")
+    original_data_folder = filedialog.askdirectory(title="Please Select the Original Figures' Folder") # Example: GFP Prox1_tif
+    root.destroy()
+    
+    # original_file_paths = [os.path.join(original_data_folder, f)
+    #               for f in os.listdir(original_data_folder)
+    #               if f.lower().endswith('.tif')]
+    
+    root = Tk()
+    root.withdraw()
+    folder_path = filedialog.askdirectory(title="Please Select the Reconstructed SIM Figures' Folder") # Example: SI_1.518_GFP_Prox1
     root.destroy()
     
     file_paths = [os.path.join(folder_path, f)
@@ -95,4 +130,4 @@ if __name__ == "__main__":
     dest_subfolder = os.path.join(dest_folder, os.path.basename(folder_path))
     os.makedirs(dest_subfolder, exist_ok=True)
     
-    FFT_check(file_paths, dest_subfolder)
+    FFT_check(file_paths, original_data_folder, dest_subfolder)
